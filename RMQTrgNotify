@@ -1,0 +1,54 @@
+#!/usr/bin/python2.7
+import sys, os
+from pprint import pprint
+sys.path.append('/DG/activeRelease/lib/python_lib')
+import sys
+import pika
+from LoadConfigFileData import get_properties, get_ini
+import SystemValidation
+import FileLogger
+import json
+
+
+##### Library to get RMQ connection handler and Post RMQ Message
+
+def getRMQConn(RoutingKey,RMQExchangeName,RMQUserName,RMQPassword,Port,VhostName,SrvFQDN,log):
+
+        try:
+            credentials = pika.PlainCredentials(RMQUserName, RMQPassword)
+            parameters = pika.ConnectionParameters(SrvFQDN, int(Port), VhostName, credentials)
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+
+            conn = {'exchange':RMQExchangeName,
+                    'routingKey': RoutingKey,
+                    'channel':channel,
+                    'connection':connection
+                    }
+            return conn
+        except (KeyError,ValueError) as exc:
+            #logging.info('{0} RMQ Connection values not found in DB'.format(exc),exc_info=True)
+            log.LOG('RMQ Connection values not found in DB')
+        except Exception,err:
+            #logging.error('Exception raised:{0}'.format(str(err)),exc_info=True)
+            log.LOG('Exception raised while connecting to RMQ')
+        return False
+
+def RMQPost(channel,exc,routeKey,EncMsg,log,featureId=None):
+        fields={}
+        if featureId != None: fields['FeatureId']=featureId
+        try:
+            channel.basic_publish(exchange=exc,
+                routing_key=routeKey,
+                body=str(EncMsg),
+                properties=pika.BasicProperties(
+                    delivery_mode = 2,
+                    headers=fields,
+            ))
+            #logging.info('SUCCESS RMQPush:{0}'.format(EncMsg))
+            log.LOG('RMQ Push Success ...... ')
+            return True
+        except Exception,err:
+            #logging.error('Exception raised in RMQ POST:{0}'.format(str(err)),exc_info=True) 
+            log.LOG('Exception raised in RMQ POST ...... ')
+        return False
