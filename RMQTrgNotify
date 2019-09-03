@@ -1,6 +1,5 @@
 #!/usr/bin/python2.7
 import sys, os
-from pprint import pprint
 sys.path.append('/DG/activeRelease/lib/python_lib')
 import sys
 import pika
